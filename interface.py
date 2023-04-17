@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from tkinter import filedialog
 from utils import database_file, fetch_clients, create_connection
 import pyautogui
 from sqlite3 import IntegrityError
@@ -112,12 +113,10 @@ class Calculator(ttk.Frame):
             
         self.grid(row=2, column=0, sticky="ew", padx=5, pady=5)
 
-class AddClientFrame(ttk.Frame):
+class ClientManagerFrame(ttk.Frame):
     def __init__(self, master, **options):
         super().__init__(master, **options)
 
-        self.title = tk.Label(self, text="ADD CLIENT").grid(row=0, column=0, sticky="ew", padx=5, pady=(10,5), columnspan=7)
-        
         self.col = 0
 
         self.str_tin1 = tk.StringVar()
@@ -157,12 +156,67 @@ class AddClientFrame(ttk.Frame):
         self.org_nm = tk.StringVar()
         self.org_name = tk.Entry(self, textvariable=self.org_nm)
 
-        self.add_btn = tk.Button(self, text="Add", command=self.add_client)
+        self.button = tk.Button(self)
 
         self.n_cols = self.grid_size()[0]
         self.n_rows = self.grid_size()[1]
 
+    def clear_entries(self):
+        for widget in self.winfo_children():
+            if isinstance(widget, tk.Entry):
+                widget.delete(0, tk.END)
 
+    def dropdown_event(self, event):
+
+        for slave in self.grid_slaves(3):
+            slave.grid_remove()
+
+        if self.type.get() == "Individual":
+            self.l_name.grid(row=3, column=0, pady=5, padx=5, sticky="ew", columnspan=2)
+
+            self.f_name.grid(row=3, column=2, pady=5, padx=5, sticky="ew", columnspan=5)
+        
+        elif self.type.get() == "Organization":
+            self.org_name.grid(row=3, column=0, pady=5, padx=5, sticky="ew", columnspan=7)
+
+        self.button.grid(row=4, column=2, pady=5, padx=5, sticky="ew", columnspan=3)
+
+    def filter(self, key):
+        if key.isdigit() and len(key) <= 3:
+            return True
+                            
+        elif key is "":
+            return True
+    
+        else:
+            return False
+
+    def show(self):
+        self.grid(row=0, column=0, sticky="sew", padx=5, pady=5)
+
+        for i in range(self.n_cols):
+            self.grid_columnconfigure(i, weight=1)
+
+class RemoveClientFrame(ClientManagerFrame):
+    def __init__(self, master, **options):
+        super().__init__(master, **options)
+
+        self.title = tk.Label(self, text="REMOVE CLIENT")
+        self.title.grid(row=0, column=0, sticky="ew", padx=5, pady=(10,5), columnspan=7)
+        self.master.title(self.title.cget("text"))
+
+        self.button = tk.Button(master=self, text="Remove")
+
+class AddClientFrame(ClientManagerFrame):
+    def __init__(self, master, **options):
+        super().__init__(master, **options)
+
+        self.title = tk.Label(self, text="ADD CLIENT")
+        self.title.grid(row=0, column=0, sticky="ew", padx=5, pady=(10,5), columnspan=7)
+        self.master.title(self.title.cget("text"))
+
+        self.button = tk.Button(master=self, text="Add", command=lambda : print("Add"))
+        
     def add_client(self):       
         self.filled_inputs = all([ widget.get() for widget in self.winfo_children() if (isinstance(widget, tk.Entry)) and widget.winfo_ismapped() ])
         self.correct_fields = [ widget if len(widget.get()) == 3 else False for widget in self.grid_slaves(1) if (isinstance(widget, tk.Entry)) ]
@@ -199,44 +253,8 @@ class AddClientFrame(ttk.Frame):
             except IntegrityError as e:
                 messagebox.showerror("Duplicate client information detected.", "Please provide a unique information to avoid conflicts.")
 
-        
+                 
         self.clear_entries()
-
-    def clear_entries(self):
-        for widget in self.winfo_children():
-            if isinstance(widget, tk.Entry):
-                widget.delete(0, tk.END)
-
-    def dropdown_event(self, event):
-
-        for slave in self.grid_slaves(3):
-            slave.grid_remove()
-
-        if self.type.get() == "Individual":
-            self.l_name.grid(row=3, column=0, pady=5, padx=5, sticky="ew", columnspan=2)
-
-            self.f_name.grid(row=3, column=2, pady=5, padx=5, sticky="ew", columnspan=5)
-        
-        elif self.type.get() == "Organization":
-            self.org_name.grid(row=3, column=0, pady=5, padx=5, sticky="ew", columnspan=7)
-
-        self.add_btn.grid(row=4, column=2, pady=5, padx=5, sticky="ew", columnspan=3)
-
-    def filter(self, key):
-        if key.isdigit() and len(key) <= 3:
-            return True
-                            
-        elif key is "":
-            return True
-    
-        else:
-            return False
-            
-    def show(self):
-        self.grid(row=3, column=0, sticky="sew", padx=5, pady=5)
-
-        for i in range(self.n_cols):
-            self.grid_columnconfigure(i, weight=1)
 
 class App(tk.Tk):
     def __init__(self):
@@ -244,8 +262,11 @@ class App(tk.Tk):
         self.SCR_WIDTH= self.winfo_screenwidth()
         self.SCR_HEIGHT= self.winfo_screenheight()
         self.WINDOW_WIDTH = 300
+        self.toplevelwindow = tk.Toplevel(master=self)
+        self.toplevelwindow.protocol("WM_DELETE_WINDOW", lambda : (self.toplevelwindow.withdraw(), self.toplevelwindow.grab_release()))
+        self.toplevelwindow.withdraw()
 
-        self.geometry(f"300x{self.SCR_HEIGHT}+{int(self.SCR_WIDTH-300)}+0")
+        self.geometry(f"300x{self.SCR_HEIGHT-30}+{int(self.SCR_WIDTH-300)}+0")
         self.maxsize(self.WINDOW_WIDTH,self.SCR_HEIGHT)
         self.minsize(self.WINDOW_WIDTH,150)
         self.title("Tin Getter")
@@ -253,6 +274,7 @@ class App(tk.Tk):
         self.wm_attributes("-topmost", 1)
 
         self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(3, weight=1)
 
         self.picked = tk.StringVar()
         self.picked.set("Client Name")
@@ -266,8 +288,26 @@ class App(tk.Tk):
         self.dropdown.bind('<<ComboboxSelected>>', self.OptionMenu_CheckButton)
         self.show_bt = tk.Button(self, text="Show", command=self.create_frames)
 
+        self.frame = ttk.Frame(master=self, relief="groove")
+        self.frame.grid(row=4, column=0, padx=5, pady=5, sticky="ew")
+        self.add_button = tk.Button(self.frame, text="Add Client", command=self.add_client_window)
+        self.remove_button = tk.Button(self.frame, text="Remove Client", command=self.remove_client_window)
+        self.add_button.grid(row=1, column=0, sticky="ew")
+        self.remove_button.grid(row=2, column=0, sticky="ew")
+        self.frame.grid_columnconfigure(0, weight=1)
 
-        self.add_client_frame = AddClientFrame(master=self, relief="groove")
+        self.add_client_frame = AddClientFrame(master=self.toplevelwindow)
+        self.remove_client_frame = RemoveClientFrame(master=self.toplevelwindow)
+
+    def remove_client_window(self):
+        self.toplevelwindow.deiconify()
+        self.toplevelwindow.grab_set()
+        self.remove_client_frame.show()
+
+    def add_client_window(self):
+        self.toplevelwindow.deiconify()
+        self.toplevelwindow.grab_set()
+        self.remove_client_frame.grid_remove()
         self.add_client_frame.show()
 
     def create_frames(self):
@@ -295,7 +335,7 @@ class App(tk.Tk):
 
     def reset_ui(self):
         for child in self.winfo_children():
-            if not isinstance(child, tk.Entry) and child.winfo_name() != "!addclientframe":
+            if not isinstance(child, tk.Entry) and child.winfo_name() != "!frame" and not isinstance(child, tk.Toplevel):
                 child.grid_remove()
 
     def OptionMenu_CheckButton(self, event):
