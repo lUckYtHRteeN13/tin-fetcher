@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from tkinter import filedialog
-from utils import database_file, fetch_clients, create_connection
+from utils import database_file, fetch_clients, create_connection, set_database_dir, get_database_dir, set_database_file, get_database_file
 import pyautogui
 from sqlite3 import IntegrityError
 
@@ -119,6 +119,22 @@ class Calculator(ttk.Frame):
             
         self.grid(row=2, column=0, sticky="ew", padx=5, pady=5)
 
+class BottomFrame(ttk.Frame):
+    def __init__(self, master, **options):
+        super().__init__(master, **options)
+
+        self.add_client_frame = AddClientFrame(master=self.master.toplevelwindow)
+        self.remove_client_frame = RemoveClientFrame(master=self.master.toplevelwindow)
+
+        self.add_button = tk.Button(self, text="Add Client", command=self.add_client_frame.show)
+        self.remove_button = tk.Button(self, text="Remove Client", command=self.remove_client_frame.show)
+
+    def show(self):
+        self.grid(row=4, column=0, padx=5, pady=5, sticky="ew")
+        self.grid_columnconfigure(0, weight=1)
+        self.add_button.grid(row=1, column=0, sticky="ew")
+        self.remove_button.grid(row=2, column=0, sticky="ew")
+
 class ClientManagerFrame(ttk.Frame):
     def __init__(self, master, **options):
         super().__init__(master, **options)
@@ -232,6 +248,8 @@ class ClientManagerFrame(ttk.Frame):
             return False
 
     def show(self):
+        self.master.deiconify()
+        self.master.grab_set()
         self.master.title(self.title.cget("text"))
         self.grid(row=0, column=0, sticky="sew", padx=5, pady=5)
 
@@ -338,13 +356,50 @@ class AddClientFrame(ClientManagerFrame):
 
         self.clear_entries()
 
+class Menu(tk.Menu):
+    def __init__(self, master, **options):
+        super().__init__(master, **options)
+
+        self.options = tk.Menu(master=self.master, tearoff=0)
+        self.options.add_command(label="Change Database Location", command=self.change_location)
+        self.options.add_separator()
+        self.options.add_command(label="Load Database", command=self.load)
+        self.options.add_command(label="Move Database")
+        self.options.add_separator()
+        self.options.add_command(label="Import From Excel")
+        self.options.add_command(label="Export To Excel")
+        self.options.add_separator()
+        self.options.add_checkbutton(label="Resizable")
+        self.add_cascade(label="Options", menu=self.options)
+
+    def change_location(self):
+        self.directory = filedialog.askdirectory(initialdir=get_database_dir())
+        if self.directory == "":
+            return
+            
+        set_database_dir(self.directory)
+        self.master.reset_ui()
+        self.master.picked.set("Client Name")
+
+    def load(self):
+        self.file = filedialog.askopenfilename(filetypes=[("Text files", "*.db")])
+        if self.file == "":
+            return 
+
+        set_database_file(self.file)
+        self.master.reset_ui()
+        self.master.picked.set("Client Name")
+
+    def move(self):
+        pass
+
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.SCR_WIDTH= self.winfo_screenwidth()
         self.SCR_HEIGHT= self.winfo_screenheight()
         self.WINDOW_WIDTH = 300
-        self.geometry(f"300x{self.SCR_HEIGHT-30}+{int(self.SCR_WIDTH-300)}+0")
+        self.geometry(f"290x{self.SCR_HEIGHT-50}+{int(self.SCR_WIDTH-300)}+0")
         self.maxsize(self.WINDOW_WIDTH,self.SCR_HEIGHT)
         self.minsize(self.WINDOW_WIDTH,150)
         self.title("Tin Getter")
@@ -360,27 +415,21 @@ class App(tk.Tk):
         self.toplevelwindow.withdraw()
         self.toplevelwindow.grid_columnconfigure(0, weight=1)
 
+        self.menu = Menu(master=self)
+        self.config(menu=self.menu)
 
         self.picked = tk.StringVar()
         self.picked.set("Client Name")
-
-        self.dropdown = ttk.Combobox(self, textvariable=self.picked, state="readonly", postcommand=self.on_expand_options)
+        self.dropdown = ttk.Combobox(self, textvariable=self.picked, state="readonly", postcommand=self.on_expand_dropdown)
+        self.dropdown.bind("<<ComboboxSelected>>", self.on_select_dropdown)
         self.dropdown.grid(row=0, column=0, pady=1, sticky="nsew")
         self.show_bt = tk.Button(self, text="Show", command=self.create_frames)
 
         self.tin_frame = TinFrame(master=self, relief="groove")
         self.calc_frame = Calculator(master=self, relief="groove")
 
-        self.bottom_frame = ttk.Frame(master=self, relief="groove")
-        self.bottom_frame.grid(row=4, column=0, padx=5, pady=5, sticky="ew")
-        self.add_button = tk.Button(self.bottom_frame, text="Add Client", command=self.add_client_window)
-        self.remove_button = tk.Button(self.bottom_frame, text="Remove Client", command=self.remove_client_window)
-        self.add_button.grid(row=1, column=0, sticky="ew")
-        self.remove_button.grid(row=2, column=0, sticky="ew")
-        self.bottom_frame.grid_columnconfigure(0, weight=1)
-
-        self.add_client_frame = AddClientFrame(master=self.toplevelwindow)
-        self.remove_client_frame = RemoveClientFrame(master=self.toplevelwindow)
+        self.bottom_frame = BottomFrame(master=self, relief="groove")
+        self.bottom_frame.show()
 
     def reset_top_level_window(self):
         if self.tin_frame.winfo_ismapped() and self.calc_frame.winfo_ismapped():
@@ -391,16 +440,11 @@ class App(tk.Tk):
 
         for widget in self.toplevelwindow.winfo_children():
             widget.grid_remove()
-
-    def remove_client_window(self):
-        self.toplevelwindow.deiconify()
-        self.toplevelwindow.grab_set()
-        self.remove_client_frame.show()
-
-    def add_client_window(self):
-        self.toplevelwindow.deiconify()
-        self.toplevelwindow.grab_set()
-        self.add_client_frame.show()
+        
+        self.update_options()
+        if self.picked.get() not in self.options:
+            self.reset_ui()
+            self.picked.set("Client Name")
 
     def create_frames(self):
         self.reset_ui()
@@ -424,18 +468,24 @@ class App(tk.Tk):
         return self.client_info
 
     def reset_ui(self):
-        for child in self.winfo_children(): 
-            if not isinstance(child, tk.Entry) and child.winfo_name() != "!frame" and not isinstance(child, tk.Toplevel):
+        for child in self.winfo_children():
+            if not isinstance(child, ttk.Combobox) and child.winfo_name() != "!bottomframe" and not isinstance(child, tk.Toplevel):
                 child.grid_remove()
 
-    def on_expand_options(self):
+    def on_select_dropdown(self, _):
+        if self.prev_selection != self.dropdown.get():
+            self.reset_ui()
+            self.show_bt.grid(row=1, column=0, sticky="new")
+
+    def update_options(self):
         self.clients = self.get_clients()
         self.options = [ name for name in set(self.clients.values()) ]
         self.options.sort()
-
         self.dropdown['values'] = self.options
-        self.reset_ui()
-        self.show_bt.grid(row=1, column=0, sticky="new")
+
+    def on_expand_dropdown(self):
+        self.update_options()
+        self.prev_selection = self.picked.get()
 
 if __name__ == "__main__":
     app = App()

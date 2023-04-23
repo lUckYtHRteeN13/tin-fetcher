@@ -2,19 +2,44 @@ from openpyxl import load_workbook
 import sqlite3
 import os
 
+USER_DIR = os.path.expanduser("~\AppData\Local")
+DATA_DIR = os.path.join(USER_DIR, "TinFetcher")
+DATABASE_DIR = os.path.join(DATA_DIR, "database")
+
 def database_file():
-    absolute_path = os.path.dirname(os.path.abspath(__file__))
-    database_path = os.path.join(absolute_path, "database")
+    if not os.path.exists(DATABASE_DIR):
+        os.makedirs(DATABASE_DIR)
 
-    if not os.path.exists(database_path):
-        os.mkdir(database_path)
+    database = os.path.join(DATABASE_DIR, "client.db")
 
-    database = os.path.join(database_path, "client.db")
+    return database
 
+def set_database_dir(path):
+    global DATABASE_DIR
+    
+    if not os.path.isdir(path):
+        return
+    
+    DATABASE_DIR = path
+
+def get_database_dir():
+    return DATABASE_DIR
+
+def set_database_file(file):
+    global database
+    
+    if not os.path.isfile(file):
+        return
+    
+    database = file
+    set_database_dir(os.path.dirname(database))
+
+def get_database_file():
     return database
 
 def create_connection(db_file):
     connection = None
+
     try:
         connection = sqlite3.connect(db_file)
         cursor = connection.cursor()
@@ -24,6 +49,7 @@ def create_connection(db_file):
 
     except sqlite3.Error as e:
         print(f"The Error '{e}' occurred.")
+
     return connection
 
 def fetch_clients(conn, client_name=None) -> list:
