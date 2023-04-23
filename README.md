@@ -21,11 +21,13 @@ This app contains;
 <img src="documentation_imgs/OptionMenu.jpg" width="400"/>
 
 * **Change Database Location**
-    
-        Lets the user choose where the database is located.
+
+     Lets the user choose where the database is located.
+     
 * **Load Database**
-    
-        Lets the user choose which database to use.
+
+     Lets the user choose which database to use.
+     
 * **Move Database** *(In Development)*
 * **Import From Excel** *(In Development)*
 * **Export To Excel** *(In Development)*
