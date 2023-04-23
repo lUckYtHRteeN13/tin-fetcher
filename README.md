@@ -1,9 +1,21 @@
 # Tin-Fetcher
 A simple application that retrieves Tax Identification Number (TIN) from a database
 
-## Window Structure
+# Installation
 
-This app contains;
+Install the app with a setup:
+
+> Go to [setup-executable](https://github.com/lUckYtHRteeN13/tin-fetcher/tree/main/setup-executable) and download the executable or [click here](https://github.com/lUckYtHRteeN13/tin-fetcher/raw/main/setup-executable/TinFetcher-Setup.exe)
+>
+> Run "TinFetcher-Setup.exe"
+> 
+> Follow the instructions
+>
+> Done! You're all set.
+
+# Window Structure
+
+This app contains:
 
 * [Main Window](#main-window)
 * [Options Menu](#options-menu)
@@ -50,7 +62,7 @@ Also contains a **Calculator** *(In Development)*.
 
 Select a button and it will popup a small window.
 
-### Create Window 
+### Create Client Window 
 Add a client with the exact Tax Identification Number (TIN) to the Database
 
 ##### Individual
@@ -61,7 +73,7 @@ Add a client with the exact Tax Identification Number (TIN) to the Database
 
 <br>
 
-### Remove Window
+### Remove Client Window
 
 Remove a client with the exact Tax Identification Number (TIN) from the Database
 
@@ -70,3 +82,5 @@ Remove a client with the exact Tax Identification Number (TIN) from the Database
 
 ##### Organization
 <img src="documentation_imgs/RemoveClientWindowOrg.jpg" width="400"/> 
+
+All Rights Reserved 2023 :copyright: • lUckYtHRteeN13 •
